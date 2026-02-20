@@ -14,35 +14,50 @@
         input:focus, select:focus { border-color: #0078d4; box-shadow: 0 0 0 2px rgba(0,120,212,0.2); }
         button { background: #0078d4; color: white; border: none; font-weight: bold; cursor: pointer; transition: background 0.2s; margin-top: 20px; }
         button:active { background: #005a9e; transform: scale(0.98); }
+        
+        /* New style for the secondary button */
+        .btn-secondary { background: #f0f2f5; color: #1c1e21; border: 1px solid #ccd0d5; margin-top: 5px; margin-bottom: 15px; }
+        .btn-secondary:active { background: #e4e6eb; }
+        
         #status { margin-top: 15px; font-weight: bold; font-size: 14px; min-height: 20px; }
     </style>
 </head>
 <body>
     <div class="container">
         <h2>🏗️ Renelec Plant</h2>
-        <p>Issues to: nathan.wild@renelec.com</p>
         <p>Enter name & Select site from dropdown</p>
         
         <div id="assetDisplay" class="asset-box">Identifying Equipment...</div>
 
-        <input type="text" id="workerName" placeholder="Enter Your Name" autocomplete="name">
+        <div id="restOfForm">
+            <input type="text" id="workerName" placeholder="Enter Your Name" autocomplete="name">
 
-        <select id="jobSite">
-            <option value="" disabled selected>Loading Active Contracts...</option>
-        </select>
+            <select id="jobSite">
+                <option value="" disabled selected>Loading Active Contracts...</option>
+            </select>
 
-        <button id="submitBtn" onclick="submitScan()">Confirm Checkout</button>
+            <button type="button" class="btn-secondary" onclick="showMissingSiteBox()">My site is not listed</button>
+
+            <button id="submitBtn" onclick="submitScan()">Confirm Checkout</button>
+        </div>
+
+        <div id="missingSiteSection" style="display: none; background-color: #ffeaea; padding: 15px; border-radius: 8px; border-left: 4px solid red; margin-top: 15px; text-align: left;">
+            <h4 style="margin-top: 0; color: #d32f2f;">Request a New Site</h4>
+            <p style="color: #d32f2f; margin-bottom: 10px; font-size: 13px;">Logging paused. Please type your site below to alert Nathan.</p>
+            <input type="text" id="newSiteName" placeholder="Type missing site name...">
+            <button type="button" style="background: #d32f2f;" onclick="sendAlertEmail()">Send Alert & Wait</button>
+        </div>
+
         <div id="status"></div>
     </div>
 
     <script>
-        // 1. GET ASSET ID FROM THE QR CODE URL (?asset=EXC-01)
+        // GET ASSET ID FROM THE QR CODE URL (?asset=EXC-01)
         const urlParams = new URLSearchParams(window.location.search);
         const assetId = urlParams.get('asset') || "Unknown Asset";
         document.getElementById('assetDisplay').innerText = "Asset ID: " + assetId;
 
-        // 2. FETCH LIVE CONTRACTS LIST
-        // Replace this URL with your actual GitHub link to your sites.json
+        // FETCH LIVE CONTRACTS LIST
         const jsonUrl = 'https://raw.githubusercontent.com/NWRenGW/Plant-Tracker/refs/heads/main/sites.json';
 
         fetch(jsonUrl) 
@@ -52,7 +67,6 @@
                 dropdown.innerHTML = '<option value="" disabled selected>Where is it going?</option>';
                 data.forEach(item => {
                     let opt = document.createElement('option');
-                    // 'SiteName' must match the key used in your Power Automate 'Select' action
                     opt.value = item.SiteName; 
                     opt.innerText = item.SiteName;
                     dropdown.appendChild(opt);
@@ -63,6 +77,36 @@
                 document.getElementById('jobSite').innerHTML = '<option>Error loading sites</option>';
             });
 
+        // --- NEW MISSING SITE FUNCTIONS ---
+        function showMissingSiteBox() {
+            // Hide normal inputs and show the red missing site box
+            document.getElementById("restOfForm").style.display = "none";
+            document.getElementById("status").style.display = "none";
+            document.getElementById("missingSiteSection").style.display = "block";
+        }
+
+        function sendAlertEmail() {
+            let newSite = document.getElementById("newSiteName").value;
+            
+            if (newSite.trim() === "") {
+                alert("Please type a site name first!");
+                return;
+            }
+
+            // Draft the email
+            let emailAddress = "nathan.wild@renelec.com"; 
+            let subject = encodeURIComponent("ACTION REQUIRED: Missing Site for " + assetId);
+            let body = encodeURIComponent("A worker has paused logging. Please add the following site to the database:\n\n" + newSite);
+            
+            // Open the user's email app
+            window.location.href = "mailto:" + emailAddress + "?subject=" + subject + "&body=" + body;
+
+            // Update the screen so they know to wait
+            document.getElementById("missingSiteSection").innerHTML = "<h4 style='color: green; margin-top:0;'>✅ Alert Sent!</h4><p style='font-size: 13px;'>Please wait until Nathan confirms the site has been added, then refresh this page to scan again.</p>";
+        }
+        // -----------------------------------
+
+        // NORMAL SUBMISSION FUNCTION
         function submitScan() {
             const worker = document.getElementById('workerName').value.trim();
             const site = document.getElementById('jobSite').value;
@@ -79,8 +123,6 @@
             btn.disabled = true;
 
             navigator.geolocation.getCurrentPosition((pos) => {
-                // 3. SEND DATA TO YOUR FLOW 2 "CATCH LINK"
-                // Replace this URL with your HTTP POST URL from Flow 2
                 const flowUrl = 'https://default267b2c46e98b42ef93ce19c08b7664.4d.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/1812e0c80428404aa87f0392a5ac73ef/triggers/manual/paths/invoke?api-version=1';
 
                 fetch(flowUrl, {
@@ -97,7 +139,6 @@
                     if (response.ok) {
                         status.innerText = "✅ Success! Asset Logged.";
                         status.style.color = "green";
-                        // Clear name for next scan
                         document.getElementById('workerName').value = "";
                     } else {
                         throw new Error();
@@ -116,6 +157,4 @@
         }
     </script>
 </body>
-
 </html>
-
