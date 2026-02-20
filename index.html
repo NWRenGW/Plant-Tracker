@@ -22,6 +22,8 @@
         
         #status { margin-top: 15px; font-weight: bold; font-size: 14px; min-height: 20px; }
         .hidden { display: none; }
+        a { color: #0078d4; text-decoration: none; font-weight: bold; }
+        a:hover { text-decoration: underline; }
     </style>
 </head>
 <body>
@@ -73,6 +75,7 @@
 
         let selectedCondition = "";
 
+        // FETCH SITES
         fetch('https://raw.githubusercontent.com/NWRenGW/Plant-Tracker/refs/heads/main/sites.json') 
             .then(res => res.json())
             .then(data => {
@@ -115,6 +118,40 @@
             document.getElementById("missingSiteSection").classList.remove('hidden');
         }
 
+        // ADDED BACK: Missing Site Alert Function
+        function sendAlert() {
+            let newSite = document.getElementById("newSiteName").value;
+            let alertBox = document.getElementById("missingSiteSection");
+            
+            if (newSite.trim() === "") {
+                alert("Please type a site name first!");
+                return;
+            }
+
+            alertBox.innerHTML = "<h4 style='margin-top: 0; color: #d32f2f;'>Request a New Site</h4><p style='color: #d32f2f; font-weight: bold;'>⏳ Sending alert...</p>";
+
+            const alertFlowUrl = 'https://default267b2c46e98b42ef93ce19c08b7664.4d.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/3f5a928b87b34145bae782d083e060bc/triggers/manual/paths/invoke?api-version=1';
+
+            fetch(alertFlowUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    assetId: assetId,
+                    newSite: newSite
+                })
+            }).then(response => {
+                if (response.ok) {
+                    alertBox.innerHTML = "<h4 style='color: green; margin-top:0;'>✅ Alert Sent!</h4><p style='font-size: 13px;'>The team has been notified. Please wait until the site is added, then refresh this page to scan again.</p>";
+                } else {
+                    throw new Error();
+                }
+            }).catch(() => {
+                // UPDATED: Failsafe contact message with clickable emails
+                alertBox.innerHTML = "<h4 style='color: red; margin-top:0;'>❌ Error Sending Alert</h4><p style='font-size: 13px; color: #1c1e21;'>The system failed to send the alert automatically.</p><p style='font-size: 13px; color: #1c1e21;'>Please contact <a href='mailto:nathan.wild@renelec.com'>nathan.wild@renelec.com</a> or <a href='mailto:stephen.waite@renelec.com'>stephen.waite@renelec.com</a> directly to have the site added.</p>";
+            });
+        }
+
+        // MAIN CHECKOUT FUNCTION
         function submitScan() {
             const worker = document.getElementById('workerName').value.trim();
             const site = document.getElementById('jobSite').value;
@@ -158,4 +195,3 @@
     </script>
 </body>
 </html>
-
