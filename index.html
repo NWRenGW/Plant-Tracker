@@ -26,6 +26,8 @@
     <div class="container">
         <h2>🏗️ Renelec Plant</h2>
         <p>Enter name & Select site from dropdown</p>
+         <p>If site is missing, press 'My site is not listed' and type missing site name. This will send a notification for the site to be added</p>
+        
         
         <div id="assetDisplay" class="asset-box">Identifying Equipment...</div>
 
@@ -45,7 +47,7 @@
             <h4 style="margin-top: 0; color: #d32f2f;">Request a New Site</h4>
             <p style="color: #d32f2f; margin-bottom: 10px; font-size: 13px;">Logging paused. Please type your site below to alert Nathan.</p>
             <input type="text" id="newSiteName" placeholder="Type missing site name...">
-            <button type="button" style="background: #d32f2f;" onclick="sendAlertEmail()">Send Alert & Wait</button>
+            <button type="button" style="background: #d32f2f;" onclick="sendAlert()">Send Alert & Wait</button>
         </div>
 
         <div id="status"></div>
@@ -77,7 +79,7 @@
                 document.getElementById('jobSite').innerHTML = '<option>Error loading sites</option>';
             });
 
-        // --- NEW MISSING SITE FUNCTIONS ---
+        // --- MISSING SITE FUNCTIONS ---
         function showMissingSiteBox() {
             // Hide normal inputs and show the red missing site box
             document.getElementById("restOfForm").style.display = "none";
@@ -85,24 +87,38 @@
             document.getElementById("missingSiteSection").style.display = "block";
         }
 
-        function sendAlertEmail() {
+        function sendAlert() {
             let newSite = document.getElementById("newSiteName").value;
+            let alertBox = document.getElementById("missingSiteSection");
             
             if (newSite.trim() === "") {
                 alert("Please type a site name first!");
                 return;
             }
 
-            // Draft the email
-            let emailAddress = "nathan.wild@renelec.com"; 
-            let subject = encodeURIComponent("ACTION REQUIRED: Missing Site for " + assetId);
-            let body = encodeURIComponent("A worker has paused logging. Please add the following site to the database:\n\n" + newSite);
-            
-            // Open the user's email app
-            window.location.href = "mailto:" + emailAddress + "?subject=" + subject + "&body=" + body;
+            // Show a loading message so the worker knows it's doing something
+            alertBox.innerHTML = "<h4 style='margin-top: 0; color: #d32f2f;'>Request a New Site</h4><p style='color: #d32f2f; font-weight: bold;'>⏳ Sending alert to Nathan...</p>";
 
-            // Update the screen so they know to wait
-            document.getElementById("missingSiteSection").innerHTML = "<h4 style='color: green; margin-top:0;'>✅ Alert Sent!</h4><p style='font-size: 13px;'>Please wait until Nathan confirms the site has been added, then refresh this page to scan again.</p>";
+            // 👉 IMPORTANT: PASTE YOUR NEW ALERT FLOW URL BELOW
+            const alertFlowUrl = 'YOUR_NEW_HTTP_FLOW_URL_HERE';
+
+            // Send data silently to Power Automate
+            fetch(alertFlowUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    assetId: assetId,
+                    newSite: newSite
+                })
+            }).then(response => {
+                if (response.ok) {
+                    alertBox.innerHTML = "<h4 style='color: green; margin-top:0;'>✅ Alert Sent!</h4><p style='font-size: 13px;'>Nathan has been notified. Please wait until the site is added, then refresh this page to scan again.</p>";
+                } else {
+                    throw new Error();
+                }
+            }).catch(() => {
+                alertBox.innerHTML = "<h4 style='color: red; margin-top:0;'>❌ Error</h4><p style='font-size: 13px;'>Failed to send alert. Please notify Nathan directly.</p>";
+            });
         }
         // -----------------------------------
 
@@ -123,6 +139,7 @@
             btn.disabled = true;
 
             navigator.geolocation.getCurrentPosition((pos) => {
+                // YOUR ORIGINAL SUBMISSION URL
                 const flowUrl = 'https://default267b2c46e98b42ef93ce19c08b7664.4d.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/1812e0c80428404aa87f0392a5ac73ef/triggers/manual/paths/invoke?api-version=1';
 
                 fetch(flowUrl, {
