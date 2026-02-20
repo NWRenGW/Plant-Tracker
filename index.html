@@ -17,7 +17,7 @@
         
         .btn-secondary { background: #f0f2f5; color: #1c1e21; border: 1px solid #ccd0d5; margin-top: 5px; margin-bottom: 15px; }
         .btn-working { background: #28a745; margin-top: 10px; }
-        .btn-broken { background: #dc3545; margin-top: 10px; }
+        .btn-faulty { background: #dc3545; margin-top: 10px; }
         .btn-reset { background: #6c757d; font-size: 12px; padding: 8px; margin-top: 30px; opacity: 0.7; }
         
         #status { margin-top: 15px; font-weight: bold; font-size: 14px; min-height: 20px; }
@@ -43,7 +43,7 @@
             <div id="conditionSection" class="hidden">
                 <p style="margin-bottom: 5px; font-weight: bold;">Condition of Equipment:</p>
                 <button type="button" class="btn-working" onclick="setCondition('Working')">✅ Working</button>
-                <button type="button" class="btn-broken" onclick="setCondition('Broken')">❌ Broken / Faulty</button>
+                <button type="button" class="btn-faulty" onclick="setCondition('Faulty')">❌ Faulty</button>
             </div>
 
             <div id="faultSection" class="hidden">
@@ -72,7 +72,6 @@
 
         let selectedCondition = "";
 
-        // FETCH LIVE CONTRACTS
         fetch('https://raw.githubusercontent.com/NWRenGW/Plant-Tracker/refs/heads/main/sites.json') 
             .then(res => res.json())
             .then(data => {
@@ -86,30 +85,28 @@
                 });
             });
 
-        // Toggle logic when site is chosen
         function handleSiteSelection() {
             document.getElementById('notListedBtn').classList.add('hidden');
             document.getElementById('conditionSection').classList.remove('hidden');
         }
 
-        // Toggle logic for Working/Broken
         function setCondition(status) {
             selectedCondition = status;
             const faultBox = document.getElementById('faultSection');
             const submitBtn = document.getElementById('submitBtn');
 
-            if (status === 'Broken') {
+            if (status === 'Faulty') {
                 faultBox.classList.remove('hidden');
             } else {
                 faultBox.classList.add('hidden');
-                document.getElementById('faultDesc').value = ""; // Clear fault if they switch back to working
+                document.getElementById('faultDesc').value = ""; 
             }
             submitBtn.classList.remove('hidden');
             document.getElementById('status').innerText = "Selected: " + status;
         }
 
         function resetForm() {
-            location.reload(); // Simplest way to reset everything
+            location.reload(); 
         }
 
         function showMissingSiteBox() {
@@ -157,8 +154,6 @@
                 btn.disabled = false;
             });
         }
-
-        // ... Keep your existing sendAlert() function below ...
     </script>
 </body>
 </html>
