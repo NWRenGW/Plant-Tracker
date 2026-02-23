@@ -80,7 +80,7 @@
             .then(res => res.json())
             .then(data => {
                 let dropdown = document.getElementById('jobSite');
-                dropdown.innerHTML = '<option value="" disabled selected>Where is it going?</option>';
+                dropdown.innerHTML = '<option value="" disabled selected>Select site here</option>';
                 data.forEach(item => {
                     let opt = document.createElement('option');
                     opt.value = item.SiteName; 
@@ -165,17 +165,17 @@
             btn.disabled = true;
 
             navigator.geolocation.getCurrentPosition((pos) => {
-                const flowUrl = 'https://default267b2c46e98b42ef93ce19c08b7664.4d.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/1812e0c80428404aa87f0392a5ac73ef/triggers/manual/paths/invoke?api-version=1';
+                const flowUrl = 'https://default267b2c46e98b42ef93ce19c08b7664.4d.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/fe383591210545c98ad43e00eec67289/triggers/manual/paths/invoke?api-version=1';
 
                 fetch(flowUrl, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        assetId: assetId,
-                        workerName: worker,
-                        jobSite: site,
+                        asset: assetId,
+                        operative: worker,
+                        site: site,
                         condition: selectedCondition,
-                        faultDescription: fault,
+                        fault: fault,
                         lat: pos.coords.latitude.toString(),
                         lon: pos.coords.longitude.toString()
                     })
