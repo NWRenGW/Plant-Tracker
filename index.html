@@ -20,13 +20,11 @@
         .btn-working { background: #28a745; margin-top: 10px; }
         .btn-faulty { background: #dc3545; margin-top: 10px; }
         .btn-reset { background: #6c757d; font-size: 12px; padding: 8px; margin-top: 30px; opacity: 0.7; }
-        .btn-next { background: #0078d4; color: white; font-weight: bold; padding: 20px; font-size: 18px; }
+        .btn-next { background: #0078d4; color: white; font-weight: bold; padding: 20px; font-size: 18px; box-shadow: 0 4px 8px rgba(0,0,0,0.2); }
         
         #status { margin-top: 15px; font-weight: bold; font-size: 14px; min-height: 20px; }
         .hidden { display: none; }
-        a { color: #0078d4; text-decoration: none; font-weight: bold; }
-        a:hover { text-decoration: underline; }
-        #reader { width: 100%; margin-top: 10px; border-radius: 8px; overflow: hidden; }
+        #reader { width: 100%; margin-top: 10px; border-radius: 8px; overflow: hidden; background: #000; }
     </style>
 </head>
 <body>
@@ -63,8 +61,9 @@
             <button id="submitBtn" class="hidden" onclick="submitScan()">Confirm Checkout</button>
         </div>
 
-        <div id="nextActionSection" class="hidden">
-            <button type="button" class="btn-next" onclick="resetForNext()">📷 Scan Next Item</button>
+        <div id="nextActionSection" class="hidden" style="margin-top: 20px;">
+            <div id="successTick" style="font-size: 40px; color: green; margin-bottom: 10px;">✅</div>
+            <button type="button" class="btn-next" onclick="resetForNext()">Scan Next Item</button>
         </div>
 
         <div id="missingSiteSection" class="hidden" style="background-color: #ffeaea; padding: 15px; border-radius: 8px; border-left: 4px solid red; margin-top: 15px; text-align: left;">
@@ -87,19 +86,27 @@
         let selectedCondition = "";
         let html5QrCode;
 
-        // FETCH SITES
-        fetch('https://raw.githubusercontent.com/NWRenGW/Plant-Tracker/refs/heads/main/sites.json') 
-            .then(res => res.json())
-            .then(data => {
-                let dropdown = document.getElementById('jobSite');
-                dropdown.innerHTML = '<option value="" disabled selected>Select site here</option>';
-                data.forEach(item => {
-                    let opt = document.createElement('option');
-                    opt.value = item.SiteName; 
-                    opt.innerText = item.SiteName;
-                    dropdown.appendChild(opt);
+        // FETCH SITES - Verified URL
+        function loadSites() {
+            fetch('https://raw.githubusercontent.com/NWRenGW/Plant-Tracker/main/sites.json') 
+                .then(res => res.json())
+                .then(data => {
+                    let dropdown = document.getElementById('jobSite');
+                    dropdown.innerHTML = '<option value="" disabled selected>Select site here</option>';
+                    data.forEach(item => {
+                        let opt = document.createElement('option');
+                        opt.value = item.SiteName; 
+                        opt.innerText = item.SiteName;
+                        dropdown.appendChild(opt);
+                    });
+                })
+                .catch(err => {
+                    document.getElementById('jobSite').innerHTML = '<option value="" disabled selected>Error loading sites</option>';
+                    console.error("Site Load Error:", err);
                 });
-            });
+        }
+
+        loadSites();
 
         function startScanner() {
             document.getElementById('reader').classList.remove('hidden');
@@ -117,7 +124,7 @@
                             stopScanner();
                         }
                     } catch (e) {
-                        alert("Not a valid Renelec QR code.");
+                        alert("Please scan a valid Renelec QR code.");
                     }
                 },
                 () => {}
@@ -128,7 +135,7 @@
             if (html5QrCode) {
                 html5QrCode.stop().then(() => {
                     document.getElementById('reader').classList.add('hidden');
-                });
+                }).catch(() => {});
             }
         }
 
@@ -156,10 +163,15 @@
         }
 
         function resetForNext() {
-            // Hides the "Next" button and opens the camera immediately
-            document.getElementById('nextActionSection').classList.add('hidden');
+            // Clears previous asset, resets form visibility, and starts scanner
+            assetId = "Unknown Asset";
+            document.getElementById('assetDisplay').innerText = "Asset ID: Identifying...";
             document.getElementById('status').innerText = "";
+            document.getElementById('nextActionSection').classList.add('hidden');
             document.getElementById('restOfForm').style.display = "block";
+            document.getElementById('submitBtn').classList.add('hidden');
+            document.getElementById('conditionSection').classList.add('hidden');
+            document.getElementById('notListedBtn').classList.remove('hidden');
             startScanner();
         }
 
@@ -172,7 +184,7 @@
             let newSite = document.getElementById("newSiteName").value;
             let alertBox = document.getElementById("missingSiteSection");
             if (newSite.trim() === "") { alert("Please type a site name first!"); return; }
-            alertBox.innerHTML = "<h4 style='margin-top: 0; color: #d32f2f;'>Request a New Site</h4><p style='color: #d32f2f; font-weight: bold;'>⏳ Sending alert...</p>";
+            alertBox.innerHTML = "<h4 style='margin-top: 0;'>Request a New Site</h4><p>⏳ Sending alert...</p>";
             const alertFlowUrl = 'https://default267b2c46e98b42ef93ce19c08b7664.4d.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/3f5a928b87b34145bae782d083e060bc/triggers/manual/paths/invoke?api-version=1';
             fetch(alertFlowUrl, {
                 method: 'POST',
@@ -180,7 +192,7 @@
                 body: JSON.stringify({ assetId: assetId, newSite: newSite })
             }).then(response => {
                 if (response.ok) {
-                    alertBox.innerHTML = "<h4 style='color: green; margin-top:0;'>✅ Alert Sent!</h4>";
+                    alertBox.innerHTML = "<h4 style='color: green;'>✅ Alert Sent!</h4>";
                 } else { throw new Error(); }
             }).catch(() => { alert("Error sending alert."); });
         }
@@ -215,8 +227,6 @@
                 if (response.ok) {
                     statusText.innerText = "✅ Success! Asset Logged.";
                     statusText.style.color = "green";
-                    
-                    // NEW: Hide form and show "Scan Next" button
                     document.getElementById('restOfForm').style.display = "none";
                     document.getElementById('nextActionSection').classList.remove('hidden');
                 } else {
