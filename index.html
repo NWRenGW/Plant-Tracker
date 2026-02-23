@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Plant & Tool Checkout</title>
+    <script src="https://unpkg.com/html5-qrcode"></script>
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; padding: 20px; text-align: center; background: #f0f2f5; color: #1c1e21; }
         .container { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 8px 16px rgba(0,0,0,0.1); max-width: 400px; margin: auto; }
@@ -24,6 +25,7 @@
         .hidden { display: none; }
         a { color: #0078d4; text-decoration: none; font-weight: bold; }
         a:hover { text-decoration: underline; }
+        #reader { width: 100%; margin-top: 10px; border-radius: 8px; overflow: hidden; }
     </style>
 </head>
 <body>
@@ -32,7 +34,12 @@
         <p>Enter name & select site</p>
         <p>If your site is missing from the list, press 'My Site is Not Listed' and type missing site name. This will send a notification for the site to be added</p>
         
-        <div id="assetDisplay" class="asset-box">Identifying Equipment...</div>
+        <div class="asset-box">
+            <div id="assetDisplay">Identifying Equipment...</div>
+            <button type="button" id="scanBtn" style="background: #28a745; margin-top: 10px;" onclick="startScanner()">📷 Scan New Item</button>
+        </div>
+
+        <div id="reader" class="hidden"></div>
 
         <div id="restOfForm">
             <input type="text" id="workerName" placeholder="Enter Your Name">
@@ -70,10 +77,11 @@
 
     <script>
         const urlParams = new URLSearchParams(window.location.search);
-        const assetId = urlParams.get('asset') || "Unknown Asset";
+        let assetId = urlParams.get('asset') || "Unknown Asset";
         document.getElementById('assetDisplay').innerText = "Asset ID: " + assetId;
 
         let selectedCondition = "";
+        let html5QrCode;
 
         // FETCH SITES
         fetch('https://raw.githubusercontent.com/NWRenGW/Plant-Tracker/refs/heads/main/sites.json') 
@@ -88,6 +96,37 @@
                     dropdown.appendChild(opt);
                 });
             });
+
+        function startScanner() {
+            document.getElementById('reader').classList.remove('hidden');
+            html5QrCode = new Html5Qrcode("reader");
+            html5QrCode.start(
+                { facingMode: "environment" },
+                { fps: 10, qrbox: { width: 250, height: 250 } },
+                (decodedText) => {
+                    try {
+                        const url = new URL(decodedText);
+                        const newId = url.searchParams.get("asset");
+                        if (newId) {
+                            assetId = newId;
+                            document.getElementById('assetDisplay').innerText = "Asset ID: " + assetId;
+                            stopScanner();
+                        }
+                    } catch (e) {
+                        alert("Not a valid Renelec QR code.");
+                    }
+                },
+                () => {}
+            ).catch(err => alert("Camera error: " + err));
+        }
+
+        function stopScanner() {
+            if (html5QrCode) {
+                html5QrCode.stop().then(() => {
+                    document.getElementById('reader').classList.add('hidden');
+                });
+            }
+        }
 
         function handleSiteSelection() {
             document.getElementById('notListedBtn').classList.add('hidden');
@@ -118,16 +157,10 @@
             document.getElementById("missingSiteSection").classList.remove('hidden');
         }
 
-        // ADDED BACK: Missing Site Alert Function
         function sendAlert() {
             let newSite = document.getElementById("newSiteName").value;
             let alertBox = document.getElementById("missingSiteSection");
-            
-            if (newSite.trim() === "") {
-                alert("Please type a site name first!");
-                return;
-            }
-
+            if (newSite.trim() === "") { alert("Please type a site name first!"); return; }
             alertBox.innerHTML = "<h4 style='margin-top: 0; color: #d32f2f;'>Request a New Site</h4><p style='color: #d32f2f; font-weight: bold;'>⏳ Sending alert...</p>";
 
             const alertFlowUrl = 'https://default267b2c46e98b42ef93ce19c08b7664.4d.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/3f5a928b87b34145bae782d083e060bc/triggers/manual/paths/invoke?api-version=1';
@@ -135,23 +168,16 @@
             fetch(alertFlowUrl, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    assetId: assetId,
-                    newSite: newSite
-                })
+                body: JSON.stringify({ assetId: assetId, newSite: newSite })
             }).then(response => {
                 if (response.ok) {
-                    alertBox.innerHTML = "<h4 style='color: green; margin-top:0;'>✅ Alert Sent!</h4><p style='font-size: 13px;'>The team has been notified. Please wait until the site is added, then refresh this page to scan again.</p>";
-                } else {
-                    throw new Error();
-                }
+                    alertBox.innerHTML = "<h4 style='color: green; margin-top:0;'>✅ Alert Sent!</h4><p style='font-size: 13px;'>The team has been notified. Please refresh this page later.</p>";
+                } else { throw new Error(); }
             }).catch(() => {
-                // UPDATED: Failsafe contact message with clickable emails
-                alertBox.innerHTML = "<h4 style='color: red; margin-top:0;'>❌ Error Sending Alert</h4><p style='font-size: 13px; color: #1c1e21;'>The system failed to send the alert automatically.</p><p style='font-size: 13px; color: #1c1e21;'>Please contact <a href='mailto:nathan.wild@renelec.com'>nathan.wild@renelec.com</a> or <a href='mailto:stephen.waite@renelec.com'>stephen.waite@renelec.com</a> directly to have the site added.</p>";
+                alertBox.innerHTML = "<h4 style='color: red; margin-top:0;'>❌ Error Sending Alert</h4><p style='font-size: 13px;'>Contact nathan.wild@renelec.com directly.</p>";
             });
         }
 
-        // MAIN CHECKOUT FUNCTION
         function submitScan() {
             const worker = document.getElementById('workerName').value.trim();
             const site = document.getElementById('jobSite').value;
