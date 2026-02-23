@@ -4,6 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Plant & Tool Checkout</title>
+    
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+
     <script src="https://unpkg.com/html5-qrcode"></script>
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; padding: 20px; text-align: center; background: #f0f2f5; color: #1c1e21; }
@@ -15,18 +20,13 @@
         input:focus, select:focus { border-color: #0078d4; box-shadow: 0 0 0 2px rgba(0,120,212,0.2); }
         button { background: #0078d4; color: white; border: none; font-weight: bold; cursor: pointer; transition: background 0.2s; margin-top: 20px; }
         button:active { background: #005a9e; transform: scale(0.98); }
-        
         .btn-secondary { background: #f0f2f5; color: #1c1e21; border: 1px solid #ccd0d5; margin-top: 5px; margin-bottom: 15px; }
         .btn-working { background: #28a745; margin-top: 10px; }
         .btn-faulty { background: #dc3545; margin-top: 10px; }
         .btn-reset { background: #6c757d; font-size: 12px; padding: 8px; margin-top: 30px; opacity: 0.7; }
-        
         .btn-next { background: #0078d4; color: white; font-weight: bold; padding: 18px; font-size: 18px; margin-top: 10px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-        
         #status { margin-top: 15px; font-weight: bold; font-size: 14px; min-height: 20px; }
         .hidden { display: none; }
-        a { color: #0078d4; text-decoration: none; font-weight: bold; }
-        a:hover { text-decoration: underline; }
         #reader { width: 100%; margin-top: 10px; border-radius: 8px; overflow: hidden; }
     </style>
 </head>
@@ -34,7 +34,6 @@
     <div class="container">
         <h2>🏗️ Renelec Plant</h2>
         <p>Enter name & select site</p>
-        <p>If your site is missing from the list, press 'My Site is Not Listed' and type missing site name.</p>
         
         <div class="asset-box">
             <div id="assetDisplay">Identifying Equipment...</div>
@@ -44,11 +43,9 @@
 
         <div id="restOfForm">
             <input type="text" id="workerName" placeholder="Enter Your Name">
-
             <select id="jobSite" onchange="handleSiteSelection()">
                 <option value="" disabled selected>Loading Active Contracts...</option>
             </select>
-
             <button type="button" id="notListedBtn" class="btn-secondary" onclick="showMissingSiteBox()">My site is not listed</button>
 
             <div id="conditionSection" class="hidden">
@@ -77,7 +74,6 @@
         </div>
 
         <div id="globalStatus" style="margin-top: 15px; font-weight: bold; font-size: 14px;"></div>
-        
         <button type="button" class="btn-reset" onclick="resetForm()">Reset Form</button>
     </div>
 
@@ -89,7 +85,6 @@
         let selectedCondition = "";
         let html5QrCode;
 
-        // FETCH SITES
         fetch('https://raw.githubusercontent.com/NWRenGW/Plant-Tracker/main/sites.json') 
             .then(res => res.json())
             .then(data => {
@@ -170,10 +165,8 @@
             let newSite = document.getElementById("newSiteName").value;
             let alertBox = document.getElementById("missingSiteSection");
             if (newSite.trim() === "") { alert("Please type a site name first!"); return; }
-            
             alertBox.innerHTML = "<h4 style='margin-top: 0;'>Request a New Site</h4><p>⏳ Sending alert...</p>";
 
-            // UPDATED: Full missing site alert URL with signature
             const alertFlowUrl = 'https://default267b2c46e98b42ef93ce19c08b7664.4d.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/3f5a928b87b34145bae782d083e060bc/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=hvYVAXPVBAUbeEG-sMNSwDEAKQKA_W0Du77BZF9YttQ';
 
             fetch(alertFlowUrl, {
@@ -185,7 +178,7 @@
                     alertBox.innerHTML = "<h4 style='color: green;'>✅ Alert Sent!</h4><p>The team has been notified.</p>";
                 } else { throw new Error(); }
             }).catch(() => {
-                alertBox.innerHTML = "<h4 style='color: red;'>❌ Error Sending Alert</h4><p>Could not connect to the system.</p>";
+                alertBox.innerHTML = "<h4 style='color: red;'>❌ Error Sending Alert</h4>";
             });
         }
 
@@ -198,7 +191,6 @@
             const btn = document.getElementById('submitBtn');
 
             if (!worker || !site) { alert("Please enter name and site."); return; }
-
             globalStatus.innerText = "⏳ Saving...";
             btn.disabled = true;
 
