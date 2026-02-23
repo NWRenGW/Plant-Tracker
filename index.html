@@ -20,6 +20,7 @@
         .btn-working { background: #28a745; margin-top: 10px; }
         .btn-faulty { background: #dc3545; margin-top: 10px; }
         .btn-reset { background: #6c757d; font-size: 12px; padding: 8px; margin-top: 30px; opacity: 0.7; }
+        .btn-next { background: #0078d4; color: white; font-weight: bold; padding: 20px; font-size: 18px; }
         
         #status { margin-top: 15px; font-weight: bold; font-size: 14px; min-height: 20px; }
         .hidden { display: none; }
@@ -32,11 +33,10 @@
     <div class="container">
         <h2>🏗️ Renelec Plant</h2>
         <p>Enter name & select site</p>
-        <p>If your site is missing from the list, press 'My Site is Not Listed' and type missing site name. This will send a notification for the site to be added</p>
         
         <div class="asset-box">
             <div id="assetDisplay">Identifying Equipment...</div>
-            <button type="button" id="scanBtn" style="background: #28a745; margin-top: 10px;" onclick="startScanner()">📷 Scan New Item</button>
+            <button type="button" id="scanBtnTop" style="background: #28a745; margin-top: 10px;" onclick="startScanner()">📷 Scan QR Code</button>
         </div>
 
         <div id="reader" class="hidden"></div>
@@ -61,6 +61,10 @@
             </div>
 
             <button id="submitBtn" class="hidden" onclick="submitScan()">Confirm Checkout</button>
+        </div>
+
+        <div id="nextActionSection" class="hidden">
+            <button type="button" class="btn-next" onclick="resetForNext()">📷 Scan Next Item</button>
         </div>
 
         <div id="missingSiteSection" class="hidden" style="background-color: #ffeaea; padding: 15px; border-radius: 8px; border-left: 4px solid red; margin-top: 15px; text-align: left;">
@@ -137,7 +141,6 @@
             selectedCondition = status;
             const faultBox = document.getElementById('faultSection');
             const submitBtn = document.getElementById('submitBtn');
-
             if (status === 'Faulty') {
                 faultBox.classList.remove('hidden');
             } else {
@@ -152,6 +155,14 @@
             location.reload(); 
         }
 
+        function resetForNext() {
+            // Hides the "Next" button and opens the camera immediately
+            document.getElementById('nextActionSection').classList.add('hidden');
+            document.getElementById('status').innerText = "";
+            document.getElementById('restOfForm').style.display = "block";
+            startScanner();
+        }
+
         function showMissingSiteBox() {
             document.getElementById("restOfForm").style.display = "none";
             document.getElementById("missingSiteSection").classList.remove('hidden');
@@ -162,20 +173,16 @@
             let alertBox = document.getElementById("missingSiteSection");
             if (newSite.trim() === "") { alert("Please type a site name first!"); return; }
             alertBox.innerHTML = "<h4 style='margin-top: 0; color: #d32f2f;'>Request a New Site</h4><p style='color: #d32f2f; font-weight: bold;'>⏳ Sending alert...</p>";
-
             const alertFlowUrl = 'https://default267b2c46e98b42ef93ce19c08b7664.4d.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/3f5a928b87b34145bae782d083e060bc/triggers/manual/paths/invoke?api-version=1';
-
             fetch(alertFlowUrl, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ assetId: assetId, newSite: newSite })
             }).then(response => {
                 if (response.ok) {
-                    alertBox.innerHTML = "<h4 style='color: green; margin-top:0;'>✅ Alert Sent!</h4><p style='font-size: 13px;'>The team has been notified. Please refresh this page later.</p>";
+                    alertBox.innerHTML = "<h4 style='color: green; margin-top:0;'>✅ Alert Sent!</h4>";
                 } else { throw new Error(); }
-            }).catch(() => {
-                alertBox.innerHTML = "<h4 style='color: red; margin-top:0;'>❌ Error Sending Alert</h4><p style='font-size: 13px;'>Contact nathan.wild@renelec.com directly.</p>";
-            });
+            }).catch(() => { alert("Error sending alert."); });
         }
 
         function submitScan() {
@@ -190,33 +197,34 @@
             statusText.innerText = "⏳ Saving...";
             btn.disabled = true;
 
-            navigator.geolocation.getCurrentPosition((pos) => {
-                const flowUrl = 'https://default267b2c46e98b42ef93ce19c08b7664.4d.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/fe383591210545c98ad43e00eec67289/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=6ws596pRG-pkrDUdxphn4rbGwyPdc_g2v2Ql-Onnczo';
+            const flowUrl = 'https://default267b2c46e98b42ef93ce19c08b7664.4d.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/fe383591210545c98ad43e00eec67289/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=6ws596pRG-pkrDUdxphn4rbGwyPdc_g2v2Ql-Onnczo';
 
-                fetch(flowUrl, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        asset: assetId,
-                        operative: worker,
-                        site: site,
-                        condition: selectedCondition,
-                        fault: fault,
-                        lat: pos.coords.latitude.toString(),
-                        lon: pos.coords.longitude.toString()
-                    })
-                }).then(response => {
-                    if (response.ok) {
-                        statusText.innerText = "✅ Success! Asset Logged.";
-                        statusText.style.color = "green";
-                    }
-                }).catch(() => {
+            fetch(flowUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    asset: assetId,
+                    operative: worker,
+                    site: site,
+                    condition: selectedCondition,
+                    fault: fault,
+                    lat: "Skipped", 
+                    lon: "Skipped"
+                })
+            }).then(response => {
+                if (response.ok) {
+                    statusText.innerText = "✅ Success! Asset Logged.";
+                    statusText.style.color = "green";
+                    
+                    // NEW: Hide form and show "Scan Next" button
+                    document.getElementById('restOfForm').style.display = "none";
+                    document.getElementById('nextActionSection').classList.remove('hidden');
+                } else {
                     statusText.innerText = "❌ Error: Could not save.";
-                }).finally(() => { btn.disabled = false; });
-            }, (error) => {
-                alert("GPS required.");
-                btn.disabled = false;
-            });
+                }
+            }).catch(() => {
+                statusText.innerText = "❌ Network Error.";
+            }).finally(() => { btn.disabled = false; });
         }
     </script>
 </body>
