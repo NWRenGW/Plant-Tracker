@@ -165,7 +165,7 @@
             btn.disabled = true;
 
             navigator.geolocation.getCurrentPosition((pos) => {
-                const flowUrl = 'https://default267b2c46e98b42ef93ce19c08b7664.4d.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/fe383591210545c98ad43e00eec67289/triggers/manual/paths/invoke?api-version=1';
+                const flowUrl = 'https://default267b2c46e98b42ef93ce19c08b7664.4d.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/fe383591210545c98ad43e00eec67289/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=6ws596pRG-pkrDUdxphn4rbGwyPdc_g2v2Ql-Onnczo';
 
                 fetch(flowUrl, {
                     method: 'POST',
