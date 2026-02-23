@@ -103,7 +103,6 @@
                 });
             })
             .catch(err => {
-                console.error("Failed to load contracts:", err);
                 document.getElementById('jobSite').innerHTML = '<option value="" disabled>Error loading contracts</option>';
             });
 
@@ -122,9 +121,7 @@
                             document.getElementById('assetDisplay').innerText = "Asset ID: " + assetId;
                             stopScanner();
                         }
-                    } catch (e) {
-                        alert("Not a valid Renelec QR code.");
-                    }
+                    } catch (e) { alert("Not a valid Renelec QR code."); }
                 },
                 () => {}
             ).catch(err => alert("Camera error: " + err));
@@ -147,20 +144,13 @@
             selectedCondition = status;
             const faultBox = document.getElementById('faultSection');
             const submitBtn = document.getElementById('submitBtn');
-
-            if (status === 'Faulty') {
-                faultBox.classList.remove('hidden');
-            } else {
-                faultBox.classList.add('hidden');
-                document.getElementById('faultDesc').value = ""; 
-            }
+            if (status === 'Faulty') { faultBox.classList.remove('hidden'); } 
+            else { faultBox.classList.add('hidden'); document.getElementById('faultDesc').value = ""; }
             submitBtn.classList.remove('hidden');
             document.getElementById('globalStatus').innerText = "Selected: " + status;
         }
 
-        function resetForm() {
-            location.reload(); 
-        }
+        function resetForm() { location.reload(); }
 
         function resetForNext() {
             document.getElementById('successSection').classList.add('hidden');
@@ -180,9 +170,11 @@
             let newSite = document.getElementById("newSiteName").value;
             let alertBox = document.getElementById("missingSiteSection");
             if (newSite.trim() === "") { alert("Please type a site name first!"); return; }
+            
             alertBox.innerHTML = "<h4 style='margin-top: 0;'>Request a New Site</h4><p>⏳ Sending alert...</p>";
 
-            const alertFlowUrl = 'https://default267b2c46e98b42ef93ce19c08b7664.4d.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/3f5a928b87b34145bae782d083e060bc/triggers/manual/paths/invoke?api-version=1';
+            // UPDATED: Full missing site alert URL with signature
+            const alertFlowUrl = 'https://default267b2c46e98b42ef93ce19c08b7664.4d.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/3f5a928b87b34145bae782d083e060bc/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=hvYVAXPVBAUbeEG-sMNSwDEAKQKA_W0Du77BZF9YttQ';
 
             fetch(alertFlowUrl, {
                 method: 'POST',
@@ -190,10 +182,10 @@
                 body: JSON.stringify({ assetId: assetId, newSite: newSite })
             }).then(response => {
                 if (response.ok) {
-                    alertBox.innerHTML = "<h4 style='color: green;'>✅ Alert Sent!</h4>";
+                    alertBox.innerHTML = "<h4 style='color: green;'>✅ Alert Sent!</h4><p>The team has been notified.</p>";
                 } else { throw new Error(); }
             }).catch(() => {
-                alertBox.innerHTML = "<h4>❌ Error</h4>";
+                alertBox.innerHTML = "<h4 style='color: red;'>❌ Error Sending Alert</h4><p>Could not connect to the system.</p>";
             });
         }
 
@@ -231,12 +223,8 @@
                     statusInner.innerText = "✅ Success! Asset Logged.";
                     statusInner.style.color = "green";
                     globalStatus.innerText = "";
-                } else {
-                    globalStatus.innerText = "❌ Error: Could not save.";
-                }
-            }).catch(() => {
-                globalStatus.innerText = "❌ Network Error.";
-            }).finally(() => { btn.disabled = false; });
+                } else { globalStatus.innerText = "❌ Error: Could not save."; }
+            }).catch(() => { globalStatus.innerText = "❌ Network Error."; }).finally(() => { btn.disabled = false; });
         }
     </script>
 </body>
