@@ -115,6 +115,10 @@
                         if (newId) {
                             assetId = newId;
                             document.getElementById('assetDisplay').innerText = "Asset ID: " + assetId;
+                            
+                            // UPDATES THE BROWSER URL DISPLAY WITHOUT RELOADING
+                            window.history.replaceState(null, "", "?asset=" + assetId);
+                            
                             stopScanner();
                         }
                     } catch (e) { alert("Not a valid Renelec QR code."); }
@@ -222,5 +226,3 @@
     </script>
 </body>
 </html>
-
-
